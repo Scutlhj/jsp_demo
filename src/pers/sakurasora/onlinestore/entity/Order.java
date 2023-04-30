@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.sql.Timestamp;
 
 /**
  * 
@@ -33,7 +34,7 @@ public class Order implements Serializable {
 	/**
 	 * 下单时间
 	 */
-	private Date order_time;
+	private Timestamp order_time;
 	
 	/**
 	 * 金额
@@ -90,11 +91,11 @@ public class Order implements Serializable {
 		this.user = user;
 	}
 
-	public Date getOrder_time() {
+	public Timestamp getOrder_time() {
 		return order_time;
 	}
 
-	public void setOrder_time(Date order_time) {
+	public void setOrder_time(Timestamp order_time) {
 		this.order_time = order_time;
 	}
 
