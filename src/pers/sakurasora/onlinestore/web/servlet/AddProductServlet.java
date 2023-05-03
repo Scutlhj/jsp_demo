@@ -1,11 +1,10 @@
 package pers.sakurasora.onlinestore.web.servlet;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -17,6 +16,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
@@ -24,6 +24,7 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.IOUtils;
 
 import pers.sakurasora.onlinestore.constant.Constant;
+import pers.sakurasora.onlinestore.entity.Administrator;
 import pers.sakurasora.onlinestore.entity.Category;
 import pers.sakurasora.onlinestore.entity.Product;
 import pers.sakurasora.onlinestore.service.ProductService;
@@ -109,7 +110,18 @@ public class AddProductServlet extends HttpServlet {
 			 * 2. 调用service 完成添加
 			 */
 			productService.save(product);
-			
+			JSONObject jsonObj = new JSONObject();
+			Administrator admin = (Administrator)request.getSession().getAttribute("admin");
+			DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+			jsonObj.put("add_time", dtf.format(LocalDateTime.now()));
+			jsonObj.put("add_admin", admin.getAccount());
+			jsonObj.put("product_name", product.getProduct_name());
+			jsonObj.put("product_category", category.getName());
+			jsonObj.put("price", product.getMall_price());
+			jsonObj.put("number", product.getStock());
+			String json_to_string = JSONObject.toJSONString(jsonObj);
+			System.out.println(json_to_string);
+			writeFile(json_to_string,"C:\\Users\\Administrator\\Desktop\\Addproduct.json");
 			/*
 			 * 3. 重定向
 			 */
@@ -122,5 +134,27 @@ public class AddProductServlet extends HttpServlet {
 
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		doGet(request, response);
+	}
+
+	public void writeFile(String json, String FilePath) {
+
+		try {
+			File file = new File(FilePath);
+
+			// if file doesnt exists, then create it
+			if (!file.exists()) {
+				file.createNewFile();
+			}
+
+			// true = append file
+			FileWriter fileWritter = new FileWriter(file,true);
+			BufferedWriter bufferWritter = new BufferedWriter(fileWritter);
+			bufferWritter.write(json);
+			bufferWritter.newLine();
+			bufferWritter.close();
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 }
