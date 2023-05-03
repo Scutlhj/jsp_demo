@@ -1,7 +1,8 @@
 package pers.sakurasora.onlinestore.web.servlet;
 
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -11,10 +12,12 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.collections.map.HashedMap;
 
 import com.alibaba.fastjson.JSON;
 
+import pers.sakurasora.onlinestore.entity.Administrator;
 import pers.sakurasora.onlinestore.entity.Category;
 import pers.sakurasora.onlinestore.entity.Product;
 import pers.sakurasora.onlinestore.service.CategoryService;
@@ -116,6 +119,17 @@ public class AdminProductServlet extends BaseServlet {
 		response.setCharacterEncoding("UTF-8");
 		try {
 			String sProductId = request.getParameter("productId");
+			Product product = productService.getProductById(sProductId);
+			JSONObject jsonObj = new JSONObject();
+			Administrator admin = (Administrator)request.getSession().getAttribute("admin");
+			DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+			jsonObj.put("down_time", dtf.format(LocalDateTime.now()));
+			jsonObj.put("down_admin", admin.getAccount());
+			jsonObj.put("product_name", product.getProduct_name());
+			jsonObj.put("product_id", product.getId());
+			String json_to_string = JSONObject.toJSONString(jsonObj);
+			System.out.println(json_to_string);
+			writeFile(json_to_string,"C:\\Users\\Administrator\\Desktop\\Downproduct.json");
 			productService.down(Integer.parseInt(sProductId));
 			System.out.println("shelfDown:"+sProductId);
 			response.sendRedirect(request.getContextPath() + "/jsp/admin/product/list.jsp");
@@ -147,5 +161,26 @@ public class AdminProductServlet extends BaseServlet {
 		} catch (Exception e) {
 		}
 		return "/jsp/admin/product/add.jsp";
+	}
+	public void writeFile(String json, String FilePath) {
+
+		try {
+			File file = new File(FilePath);
+
+			// if file doesnt exists, then create it
+			if (!file.exists()) {
+				file.createNewFile();
+			}
+
+			// true = append file
+			FileWriter fileWritter = new FileWriter(file,true);
+			BufferedWriter bufferWritter = new BufferedWriter(fileWritter);
+			bufferWritter.write(json);
+			bufferWritter.newLine();
+			bufferWritter.close();
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 }
