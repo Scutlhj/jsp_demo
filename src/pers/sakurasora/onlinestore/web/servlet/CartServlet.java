@@ -1,12 +1,18 @@
 package pers.sakurasora.onlinestore.web.servlet;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.alibaba.fastjson.JSONObject;
 import pers.sakurasora.onlinestore.entity.Cart;
 import pers.sakurasora.onlinestore.entity.CartItem;
 import pers.sakurasora.onlinestore.entity.Product;
@@ -74,7 +80,16 @@ public class CartServlet extends BaseServlet {
 			
 			Cart cart = getCart(request);
 			cart.addToCart(cartItem);
-			
+
+			JSONObject jsonObj = new JSONObject();
+			DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+			jsonObj.put("add_time", dtf.format(LocalDateTime.now()));
+			jsonObj.put("product_name", product.getProduct_name());
+			jsonObj.put("account", user.getAccount());
+			String json_to_string = JSONObject.toJSONString(jsonObj);
+			System.out.println(json_to_string);
+			writeFile(json_to_string,"C:\\Users\\Administrator\\Desktop\\Useraddcart.json");
+
 			response.sendRedirect(request.getContextPath() + "/jsp/cart.jsp");
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -123,5 +138,26 @@ public class CartServlet extends BaseServlet {
 		
 		return null;
 	}
-	
+
+	public void writeFile(String json, String FilePath) {
+
+		try {
+			File file = new File(FilePath);
+
+			// if file doesnt exists, then create it
+			if (!file.exists()) {
+				file.createNewFile();
+			}
+
+			// true = append file
+			FileWriter fileWritter = new FileWriter(file,true);
+			BufferedWriter bufferWritter = new BufferedWriter(fileWritter);
+			bufferWritter.write(json);
+			bufferWritter.newLine();
+			bufferWritter.close();
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 }
