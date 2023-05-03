@@ -1,5 +1,8 @@
 package pers.sakurasora.onlinestore.web.servlet;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URLEncoder;
@@ -9,6 +12,10 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import com.alibaba.fastjson.JSONObject;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import org.apache.commons.beanutils.BeanUtils;
 
@@ -21,14 +28,14 @@ import pers.sakurasora.onlinestore.web.servlet.base.BaseServlet;
 
 /**
  * @author SakuraSora
- * 
+ *
  * @Description
  *				Servlet--用户模块
  */
 @WebServlet("/user")
 public class UserServlet extends BaseServlet {
 	private static final long serialVersionUID = 1L;
-	
+
 	private UserService userService = new UserServiceImpl();
 
 	/**
@@ -43,7 +50,7 @@ public class UserServlet extends BaseServlet {
 			throws ServletException, IOException {
 		return "/jsp/register.jsp";
 	}
-	
+
 	/**
 	 * 验证用户名是否已存在
 	 * @param 	request
@@ -72,7 +79,7 @@ public class UserServlet extends BaseServlet {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * 验证邮箱是否已存在
 	 * @param 	request
@@ -101,7 +108,7 @@ public class UserServlet extends BaseServlet {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * 用户注册
 	 * @param 	request
@@ -110,7 +117,7 @@ public class UserServlet extends BaseServlet {
 	 * @throws 	ServletException
 	 * @throws 	IOException
 	 */
-	public String regist(HttpServletRequest request, HttpServletResponse response) 
+	public String regist(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
 		/**
 		 * 1. 封装对象<br>
@@ -122,9 +129,9 @@ public class UserServlet extends BaseServlet {
 		try {
 			User user = new User();
 			BeanUtils.populate(user, request.getParameterMap());
-			
-			
-			
+
+
+
 			if("".equals(user.getName())) {
 				user.setName(null);
 			}
@@ -134,18 +141,18 @@ public class UserServlet extends BaseServlet {
 			if("".equals(user.getBirthday())) {
 				user.setBirthday(null);
 			}
-			
+
 			userService.regist(user);
 			request.setAttribute("sMessage", "恭喜你，注册成功！");
 		} catch (Exception e) {
 			e.printStackTrace();
-			request.setAttribute("sMessage", "注册失败"); 
+			request.setAttribute("sMessage", "注册失败");
 		}
 		return "/jsp/message.jsp"; // 转发到信息提示页面
 	}
-	
-	
-	
+
+
+
 	/**
 	 * 请求跳转到登录页面
 	 * @param 	request
@@ -154,11 +161,11 @@ public class UserServlet extends BaseServlet {
 	 * @throws 	ServletException
 	 * @throws 	IOException
 	 */
-	public String loginUI(HttpServletRequest request, HttpServletResponse response) 
+	public String loginUI(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
 		return "/jsp/login.jsp";
 	}
-	
+
 	/**
 	 * 用户登录
 	 * @param 	request
@@ -167,7 +174,7 @@ public class UserServlet extends BaseServlet {
 	 * @throws 	ServletException
 	 * @throws 	IOException
 	 */
-	public String login(HttpServletRequest request, HttpServletResponse response) 
+	public String login(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
 		/**
 		 * 1. 获取用户名和密码<br>
@@ -180,55 +187,102 @@ public class UserServlet extends BaseServlet {
 			String sAccount = request.getParameter("account");
 			String sPassword = request.getParameter("password");
 			User user = userService.login(sAccount,sPassword);
-			
+
 			if(user == null){
 				request.setAttribute("error", "用户名或密码不正确");;
 				return "/jsp/login.jsp";
 			}
-			
-		
-			
+
+			JSONObject jsonObj = new JSONObject();
+			DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+			jsonObj.put("login_time", dtf.format(LocalDateTime.now()));
+			jsonObj.put("login_ip", request.getRemoteAddr());
+			jsonObj.put("name", user.getName());
+			jsonObj.put("account", user.getAccount());
+			String json_to_string = JSONObject.toJSONString(jsonObj);
+			System.out.println(json_to_string);
+			writeFile(json_to_string,"C:\\Users\\Administrator\\Desktop\\Userlogin.json");
+
 			request.getSession().setAttribute("user", user); // 保存用户登录状态
-			
+
 			/*----------------------记住用户名begin----------------------*/
 			if(Constant.SAVE_NAME.equals(request.getParameter("savename"))){ // 如果勾选了记住用户名
 				Cookie cookie = new Cookie("saveName", URLEncoder.encode(sAccount, "utf-8")); // 如果用户名为中文，需要使用utf-8编码
-				
+
 //				cookie.setMaxAge(0); // 不记录cookie
 //				cookie.setMaxAge(-1); // 会话级cookie，关闭浏览器失效
 				cookie.setMaxAge(Integer.MAX_VALUE); // 想设置多长时间设置多长时间
 				cookie.setPath(request.getContextPath()+"/");
-				
+
 				response.addCookie(cookie); // 将用户名保存到cookie中
-			}else{ 
+			}else{
 				Cookie cookie = new Cookie("saveName", URLEncoder.encode(sAccount, "utf-8")); // 如果用户名为中文，需要使用utf-8编码
-				
+
 				cookie.setMaxAge(0); // 不记录cookie(删除此cookie)
 				cookie.setPath(request.getContextPath()+"/");
-				
+
 				response.addCookie(cookie); // 将用户名保存到cookie中
 			}
 			/*----------------------记住用户名end----------------------*/
-			
+
 			response.sendRedirect(request.getContextPath()); //重定向到 首页index.jsp
 		} catch (Exception e) {
 			e.printStackTrace();
 			request.setAttribute("sMessage", "用户登录失败");
 			return "/jsp/message.jsp";
 		}
-		
+
 		return null;
 	}
-	
+
+
 	/**
 	 * 退出
 	 */
-	public String logout(HttpServletRequest request, HttpServletResponse response) 
+	public String logout(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
 //		request.getSession().invalidate(); // 清除session中的所有信息
-		
+		User user = (User)request.getSession().getAttribute("user");
+
+		JSONObject jsonObj = new JSONObject();
+		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+		jsonObj.put("logout_time", dtf.format(LocalDateTime.now()));
+		jsonObj.put("logout_ip", request.getRemoteAddr());
+		jsonObj.put("name", user.getName());
+		jsonObj.put("account", user.getAccount());
+		String json_to_string = JSONObject.toJSONString(jsonObj);
+		System.out.println(json_to_string);
+		writeFile(json_to_string,"C:\\Users\\Administrator\\Desktop\\Userlogout.json");
+
 		request.getSession().removeAttribute("user");
 		response.sendRedirect(request.getContextPath()); // 重定向到 首页index.jsp
 		return null;
 	}
+
+	/**
+	 * write login info to json file
+	 */
+	public void writeFile(String json, String FilePath) {
+
+		try {
+			File file = new File(FilePath);
+
+			// if file doesnt exists, then create it
+			if (!file.exists()) {
+				file.createNewFile();
+			}
+
+			// true = append file
+			FileWriter fileWritter = new FileWriter(file,true);
+			BufferedWriter bufferWritter = new BufferedWriter(fileWritter);
+			bufferWritter.write(json);
+			bufferWritter.newLine();
+			bufferWritter.close();
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 }
+
+
